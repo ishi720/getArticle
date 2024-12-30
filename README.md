@@ -1,0 +1,2 @@
+# getArticle
+特定ユーザーのqiitaとzennの記事を取得する
