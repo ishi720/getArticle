@@ -116,6 +116,20 @@ def save_to_csv(data, filename="combined_articles.csv"):
 
     print(f"Combined articles have been saved to {filename}")
 
+def save_to_json(data, filename="combined_articles.json"):
+    """
+    データをJSONファイルに保存
+
+    Args:
+        data (list of dict): 保存するデータ
+        filename (str): 保存するJSONファイル名
+    """
+    try:
+        with open(filename, mode="w", encoding="utf-8") as file:
+            json.dump(data, file, ensure_ascii=False, indent=4)
+        print(f"Combined articles have been saved to {filename}")
+    except Exception as e:
+        print(f"An error occurred while saving JSON: {e}")
 
 def load_config(filename="config.json"):
     """
@@ -151,7 +165,12 @@ if config:
     # 記事データが存在すればCSVに保存
     if zenn_articles or qiita_articles:
         all_articles = save_combined_articles_to_csv(zenn_articles, qiita_articles)
-        save_to_csv(all_articles)
+        if config["output_format"] == "json":
+            save_to_json(all_articles)
+        elif config["output_format"] == "csv":
+            save_to_csv(all_articles)
+        else:
+            print("No output method specified.")
     else:
         print("No articles found.")
 else:
