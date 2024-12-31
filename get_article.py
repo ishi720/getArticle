@@ -14,6 +14,10 @@ def fetch_zenn_articles(username):
         list: ユーザーが公開した記事の情報が含まれる辞書のリスト
               取得できなかった場合は空のリストを返す
     """
+    if not username:
+        print("Zenn username is empty. Skipping fetch.")
+        return []
+
     url = f"https://zenn.dev/api/articles?username={username}"
     response = requests.get(url)
 
@@ -38,6 +42,10 @@ def fetch_qiita_articles(username):
         list: ユーザーが公開した記事の情報が含まれる辞書のリスト
               取得できなかった場合は空のリストを返す
     """
+    if not username:
+        print("Qiita username is empty. Skipping fetch.")
+        return []
+
     url = f"https://qiita.com/api/v2/items?page=1&per_page=100&query=user:{username}"
     response = requests.get(url)
 
@@ -63,12 +71,11 @@ def save_combined_articles_to_csv(zenn_articles, qiita_articles, filename="combi
 
     # Zennの記事を処理
     for article in zenn_articles:
-        tags = ', '.join([tag["name"] for tag in article.get("tags", [])])  # タグをカンマ区切りで取得
         all_articles.append({
             "published_at": article["published_at"],
             "url": f"https://zenn.dev{article['path']}",
             "title": article["title"],
-            "tags": tags,
+            "tags": "",
             "source": "Zenn"
         })
     
@@ -113,20 +120,24 @@ def load_config(filename="config.json"):
         print(f"Error: The file {filename} was not found.")
         return None
 
+# 設定ファイルから情報を読み込む
 config = load_config()
 
-# ユーザー名を指定して記事を取得
-zenn_username = config["zenn_username"]
-qiita_username = config["qiita_username"]
+if config:
+    # ユーザー名を指定して記事を取得
+    zenn_username = config["zenn_username"]
+    qiita_username = config["qiita_username"]
 
-# Zennの記事を取得
-zenn_articles = fetch_zenn_articles(zenn_username)
+    # Zennの記事を取得
+    zenn_articles = fetch_zenn_articles(zenn_username)
 
-# Qiitaの記事を取得
-qiita_articles = fetch_qiita_articles(qiita_username)
+    # Qiitaの記事を取得
+    qiita_articles = fetch_qiita_articles(qiita_username)
 
-# 記事データが存在すればCSVに保存
-if zenn_articles or qiita_articles:
-    save_combined_articles_to_csv(zenn_articles, qiita_articles)
+    # 記事データが存在すればCSVに保存
+    if zenn_articles or qiita_articles:
+        save_combined_articles_to_csv(zenn_articles, qiita_articles)
+    else:
+        print("No articles found.")
 else:
-    print("No articles found.")
+    print("Configuration file could not be loaded.")
