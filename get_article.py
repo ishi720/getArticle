@@ -58,14 +58,15 @@ def fetch_qiita_articles(username):
     
     return articles
 
-def save_combined_articles_to_csv(zenn_articles, qiita_articles, filename="combined_articles.csv"):
+def save_combined_articles_to_csv(zenn_articles, qiita_articles):
     """
-    ZennとQiitaの記事データを統合してCSVファイルに保存
+    ZennとQiitaの記事データを結合する
 
     Args:
         zenn_articles (list): Zennの記事情報リスト
         qiita_articles (list): Qiitaの記事情報リスト
-        filename (str): 保存するCSVファイル名。デフォルトは "combined_articles.csv"
+    Returns:
+        list of dict: 結合された記事データのリスト
     """
     all_articles = []
 
@@ -93,15 +94,28 @@ def save_combined_articles_to_csv(zenn_articles, qiita_articles, filename="combi
     # 作成日時で降順にソート
     all_articles.sort(key=lambda x: datetime.fromisoformat(x["published_at"]), reverse=True)
 
+    return all_articles
+
+def save_to_csv(data, filename="combined_articles.csv"):
+    """
+    データをCSVファイルに保存
+
+    Args:
+        data (list of dict): 保存するデータ
+        filename (str): 保存するCSVファイル名
+        fieldnames (list of str): CSVファイルのヘッダとして使用するフィールド名
+    """
+
     # CSVに保存
     with open(filename, mode="w", newline="", encoding="utf-8") as file:
         writer = csv.DictWriter(file, fieldnames=["published_at", "url", "title", "tags", "source"])
         writer.writeheader()
 
-        for article in all_articles:
+        for article in data:
             writer.writerow(article)
 
     print(f"Combined articles have been saved to {filename}")
+
 
 def load_config(filename="config.json"):
     """
@@ -136,7 +150,8 @@ if config:
 
     # 記事データが存在すればCSVに保存
     if zenn_articles or qiita_articles:
-        save_combined_articles_to_csv(zenn_articles, qiita_articles)
+        all_articles = save_combined_articles_to_csv(zenn_articles, qiita_articles)
+        save_to_csv(all_articles)
     else:
         print("No articles found.")
 else:
