@@ -77,7 +77,8 @@ def save_combined_articles_to_csv(zenn_articles, qiita_articles):
             "url": f"https://zenn.dev{article['path']}",
             "title": article["title"],
             "tags": "",
-            "source": "Zenn"
+            "source": "Zenn",
+            "likes": article["liked_count"]
         })
     
     # Qiitaの記事を処理
@@ -88,7 +89,8 @@ def save_combined_articles_to_csv(zenn_articles, qiita_articles):
             "url": article["url"],
             "title": article["title"],
             "tags": tags,
-            "source": "Qiita"
+            "source": "Qiita",
+            "likes": article["likes_count"]
         })
 
     # 作成日時で降順にソート
@@ -108,7 +110,7 @@ def save_to_csv(data, filename="combined_articles.csv"):
 
     # CSVに保存
     with open(filename, mode="w", newline="", encoding="utf-8") as file:
-        writer = csv.DictWriter(file, fieldnames=["published_at", "url", "title", "tags", "source"])
+        writer = csv.DictWriter(file, fieldnames=["published_at", "url", "title", "tags", "source", "likes"])
         writer.writeheader()
 
         for article in data:
