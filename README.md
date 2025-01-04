@@ -7,7 +7,7 @@
 1. config.phpにqiitaとzennのユーザ名を記載
 
 2. 下記コマンドを実行
-    ```python
+    ```bash
     $ python get_article.py
     ```
 
