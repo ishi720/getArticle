@@ -28,7 +28,7 @@ def fetch_zenn_articles(username):
     # レスポンスJSONをパースし、記事データを抽出
     data = response.json()
     articles = data.get("articles", [])
-    
+
     return articles
 
 def fetch_qiita_articles(username):
@@ -55,19 +55,66 @@ def fetch_qiita_articles(username):
 
     # レスポンスJSONをパースし、記事データを抽出
     articles = response.json()
-    
+
     return articles
 
-def save_combined_articles_to_csv(zenn_articles, qiita_articles):
+def fetch_note_articles(username):
     """
-    ZennとQiitaの記事データを結合する
+    指定されたnoteユーザーの公開記事を非公式APIから取得
+
+    Args:
+        username (str): noteのユーザー名
+
+    Returns:
+        list: ユーザーが公開した記事の情報が含まれる辞書のリスト
+              取得できなかった場合は空のリストを返す
+    """
+    if not username:
+        print("note username is empty. Skipping fetch.")
+        return []
+
+    all_articles = []
+    page = 1
+
+    while True:
+        url = f"https://note.com/api/v2/creators/{username}/contents?kind=note&page={page}"
+        response = requests.get(url)
+
+        if response.status_code != 200:
+            print(f"Failed to fetch note articles: {response.status_code}")
+            break
+
+        try:
+            data = response.json()
+            contents = data.get("data", {}).get("contents", [])
+
+            # 記事がなくなったらループ終了
+            if not contents:
+                break
+
+            all_articles.extend(contents)
+            page += 1
+
+        except Exception as e:
+            print(f"Failed to parse note API response: {e}")
+            break
+
+    return all_articles
+
+def save_combined_articles_to_csv(zenn_articles, qiita_articles, note_articles=None):
+    """
+    ZennとQiitaとnoteの記事データを結合する
 
     Args:
         zenn_articles (list): Zennの記事情報リスト
         qiita_articles (list): Qiitaの記事情報リスト
+        note_articles (list): noteの記事情報リスト
     Returns:
         list of dict: 結合された記事データのリスト
     """
+    if note_articles is None:
+        note_articles = []
+
     all_articles = []
 
     # Zennの記事を処理
@@ -80,7 +127,7 @@ def save_combined_articles_to_csv(zenn_articles, qiita_articles):
             "source": "Zenn",
             "likes": article["liked_count"]
         })
-    
+
     # Qiitaの記事を処理
     for article in qiita_articles:
         tags = ', '.join([tag["name"] for tag in article.get("tags", [])])  # タグをカンマ区切りで取得
@@ -93,8 +140,23 @@ def save_combined_articles_to_csv(zenn_articles, qiita_articles):
             "likes": article["likes_count"]
         })
 
+    # noteの記事を処理
+    for article in note_articles:
+        # ハッシュタグを取得（#を除去）
+        hashtags = article.get("hashtags", [])
+        tags = ', '.join([tag.get("hashtag", {}).get("name", "").lstrip("#") for tag in hashtags if tag.get("hashtag")])
+
+        all_articles.append({
+            "published_at": article.get("publishAt", ""),
+            "url": article.get("noteUrl", ""),
+            "title": article.get("name", ""),
+            "tags": tags,
+            "source": "note",
+            "likes": article.get("likeCount", 0)
+        })
+
     # 作成日時で降順にソート
-    all_articles.sort(key=lambda x: datetime.fromisoformat(x["published_at"]), reverse=True)
+    all_articles.sort(key=lambda x: datetime.fromisoformat(x["published_at"]) if x["published_at"] else datetime.min, reverse=True)
 
     return all_articles
 
@@ -155,8 +217,9 @@ config = load_config()
 
 if config:
     # ユーザー名を指定して記事を取得
-    zenn_username = config["zenn_username"]
-    qiita_username = config["qiita_username"]
+    zenn_username = config.get("zenn_username", "")
+    qiita_username = config.get("qiita_username", "")
+    note_username = config.get("note_username", "")
 
     # Zennの記事を取得
     zenn_articles = fetch_zenn_articles(zenn_username)
@@ -164,9 +227,12 @@ if config:
     # Qiitaの記事を取得
     qiita_articles = fetch_qiita_articles(qiita_username)
 
+    # noteの記事を取得
+    note_articles = fetch_note_articles(note_username)
+
     # 記事データが存在すればCSVに保存
-    if zenn_articles or qiita_articles:
-        all_articles = save_combined_articles_to_csv(zenn_articles, qiita_articles)
+    if zenn_articles or qiita_articles or note_articles:
+        all_articles = save_combined_articles_to_csv(zenn_articles, qiita_articles, note_articles)
         if config["output_format"] == "json":
             save_to_json(all_articles)
         elif config["output_format"] == "csv":
