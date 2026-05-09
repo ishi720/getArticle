@@ -125,7 +125,8 @@ def save_combined_articles_to_csv(zenn_articles, qiita_articles, note_articles=N
             "title": article["title"],
             "tags": "",
             "source": "Zenn",
-            "likes": article["liked_count"]
+            "likes": article["liked_count"],
+            "eyecatch": ""
         })
 
     # Qiitaの記事を処理
@@ -137,7 +138,8 @@ def save_combined_articles_to_csv(zenn_articles, qiita_articles, note_articles=N
             "title": article["title"],
             "tags": tags,
             "source": "Qiita",
-            "likes": article["likes_count"]
+            "likes": article["likes_count"],
+            "eyecatch": ""
         })
 
     # noteの記事を処理
@@ -152,7 +154,8 @@ def save_combined_articles_to_csv(zenn_articles, qiita_articles, note_articles=N
             "title": article.get("name", ""),
             "tags": tags,
             "source": "note",
-            "likes": article.get("likeCount", 0)
+            "likes": article.get("likeCount", 0),
+            "eyecatch": article.get("eyecatch", "")
         })
 
     # 作成日時で降順にソート
@@ -172,7 +175,7 @@ def save_to_csv(data, filename="combined_articles.csv"):
 
     # CSVに保存
     with open(filename, mode="w", newline="", encoding="utf-8") as file:
-        writer = csv.DictWriter(file, fieldnames=["published_at", "url", "title", "tags", "source", "likes"])
+        writer = csv.DictWriter(file, fieldnames=["published_at", "url", "title", "tags", "source", "likes", "eyecatch"])
         writer.writeheader()
 
         for article in data:
